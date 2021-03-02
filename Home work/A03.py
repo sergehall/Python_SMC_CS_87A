@@ -292,7 +292,6 @@ def comp_move(board, level, diagonal):
     #  Returning the modified list
     return board
 
-
 #  The function takes the coordinates of the pair from the player
 #  and passes it to the list.
 def my_turn_move(board, diagonal):
