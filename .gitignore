@@ -1,4 +1,3 @@
-.env
 # IDEs and editors
 /.idea
 .project
@@ -7,3 +6,16 @@
 *.launch
 .settings/
 *.sublime-workspace
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment files
+.env
+.env.*
+
+# VS Code
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json

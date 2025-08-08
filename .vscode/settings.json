@@ -1,5 +1,4 @@
 {
-    "editor.fontSize": 17,
     "python.terminal.executeInFileDir": true,
     "python.analysis.typeCheckingMode": "basic",
     "python.autoComplete.addBrackets": true,
@@ -7,7 +6,6 @@
     "python.formatting.provider": "autopep8",
     "editor.formatOnSave": true,
     "editor.tabSize": 4,
-    "files.autoSave": "afterDelay",
     "files.associations": {
         "*.pyi": "python"
     }
