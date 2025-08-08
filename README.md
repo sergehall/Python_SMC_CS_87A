@@ -58,8 +58,9 @@ It includes six programming assignments covering Python fundamentals, data struc
 | **A02**    | Functions, input/output, error handling                                                              | ✅ complete |
 | **A03**    | Lists, tuples, dictionaries, and basic algorithms                                                   | ✅ complete |
 | **A04**    | Classes and objects, encapsulation, and methods                                                      | ✅ complete |
-| **A05**    | File I/O, custom classes, dictionaries with tuple keys, election data parsing and aggregation logic | ✅ complete |
-| **A06**    | Tkinter GUI programming, Canvas drawing, visualization of processed election data                   | ✅ complete |
+| **A05**    | File I/O, custom classes, dictionaries with tuple keys,<br>election data parsing and aggregation logic | ✅ complete |
+| **A06**    | Tkinter GUI programming, Canvas drawing,<br>visualization of processed election data                 | ✅ complete |
+
 
 ---
 
