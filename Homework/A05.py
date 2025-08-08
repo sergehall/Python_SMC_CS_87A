@@ -5,6 +5,7 @@
 # Program "President Candidate vs House Member Winners.":
 # ("2000", 'Maryland') 4 republican, 4 democrat, house_dict.
 
+import os
 import A05ClassPrH
 
 
@@ -109,11 +110,12 @@ def main():
 # and returns a dictionary where the key is a tuple(year, state),
 # and the value is a list of objects.
 def create_house_dict():
-    # Open and read the file.
+    base_dir = os.path.dirname(__file__)
+    file_path = os.path.join(base_dir, "house.tab")
+
     content_list_house_dirty = []
-    house = open("house.tab", "r")
-    content = house.readlines()
-    house.close()
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as house:
+        content = house.readlines()
 
     # Read the content and divide it by tab.
     for i in content:
@@ -182,11 +184,12 @@ def create_house_dict():
 # and returns a dictionary where the key is a tuple(year, state),
 # and the value is a list of objects.
 def create_president_dict():
-    # Open and read the file.
+    base_dir = os.path.dirname(__file__)
+    file_path = os.path.join(base_dir, "president.tab")
+
     content_list_president_dirty = []
-    president = open("president.tab", "r")
-    content = president.readlines()
-    president.close()
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as president:
+        content = president.readlines()
 
     # Read the content and divide it by tab.
     for i in content:
