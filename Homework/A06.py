@@ -357,7 +357,7 @@ class MyGUI:
             relief=tk.GROOVE,
             width=45,
         ).pack()
-        self.top_frame.pack(fill=None, expand=False)
+        self.top_frame.pack()
 
         # ---- Radio buttons (chart selector) ----
         self.r_b_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
