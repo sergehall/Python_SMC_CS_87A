@@ -277,4 +277,5 @@ def logic_program_4(manually):
     logic_program_3(manually, two_dimensional)
 
 
-main(manually_def)
+if __name__ == "__main__":
+    main(manually_def)
