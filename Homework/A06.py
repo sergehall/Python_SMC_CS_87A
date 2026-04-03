@@ -315,202 +315,281 @@ class MyGUI:
         self.__president_dict = president_dict
         self.__state_breakdown_dict = state_breakdown_dict
 
-        # ---- Color palette (matches your screenshot theme) ----
+        # ---- Color palette (keeps your warm tones, but with cleaner contrast) ----
         self.COLORS = {
-            "bg": "linen",          # root background
-            "panel": "linen",     
-            "header_bg": "rosy brown",
-            "header_fg": "white",
-            "text_fg": "black",      
-            "entry_bg": "white",  
-            "entry_fg": "black",
-            "entry_border": "#f0e2e2",
-            "canvas_bg": "linen",
-            "btn_bg": "white",
-            "btn_ok_fg": "green4",
-            "btn_quit_fg": "red",
-            "btn_active_fg": "black",
-            "border": "#3a3a3a",
+            "bg": "#f4ece5",
+            "surface": "#fbf5ef",
+            "panel": "#f0e3d7",
+            "header_bg": "#be9790",
+            "header_fg": "#fff8f4",
+            "text_fg": "#2f2622",
+            "muted_fg": "#6e5c55",
+            "entry_bg": "#fffdfb",
+            "entry_fg": "#2f2622",
+            "entry_border": "#d9c0b8",
+            "canvas_bg": "#fffaf5",
+            "canvas_ring": "#dcc3bb",
+            "btn_neutral_bg": "#fff8f2",
+            "btn_show_bg": "#dcc0b0",
+            "btn_clear_fg": "#2f7d32",
+            "btn_show_fg": "#4b342c",
+            "btn_quit_fg": "#b33636",
+            "btn_border": "#b99b92",
+            "btn_active_fg": "#241d1a",
+            "border": "#8e7269",
+            "shadow": "#d3b8af",
+            "democrat": "#2048f2",
+            "republican": "#f23628",
+            "other": "#3e8f2e",
+        }
+
+        self.FONTS = {
+            "title": ("Times New Roman", 20, "bold"),
+            "subtitle": ("Times New Roman", 11),
+            "section": ("Times New Roman", 15, "bold"),
+            "body": ("Times New Roman", 14),
+            "radio": ("Times New Roman", 15),
+            "field_label": ("Times New Roman", 12, "bold"),
+            "field_hint": ("Times New Roman", 10),
+            "button": ("Times New Roman", 15, "bold"),
+            "legend": ("Times New Roman", 14, "bold"),
+            "canvas_title": ("Times New Roman", 14, "bold"),
+            "canvas_hint": ("Times New Roman", 12),
         }
 
         # ---- Root window ----
         self.main_window = tk.Tk()
         self.main_window.configure(bg=self.COLORS["bg"])
-        self.main_window.geometry("370x590")
+        self.main_window.geometry("760x820")
+        self.main_window.minsize(620, 680)
         self.main_window.title("Visualization and UI for Data Analysis")
+        self.main_window.option_add("*Label.Background", self.COLORS["bg"])
 
         # ---- Canvas geometry ----
-        self.__CANVAS_WIDTH = 350
-        self.__CANVAS_HEIGHT = 300
-        self.__X1, self.__Y1, self.__X2, self.__Y2 = 30, 10, 320, 290
+        self.__DEFAULT_CANVAS_WIDTH = 480
+        self.__DEFAULT_CANVAS_HEIGHT = 370
+        self.__MIN_CANVAS_WIDTH = 300
+        self.__MIN_CANVAS_HEIGHT = 180
+        self.__MAX_CANVAS_WIDTH = 640
+        self.__MAX_CANVAS_HEIGHT = 460
+        self.__CANVAS_WIDTH = self.__DEFAULT_CANVAS_WIDTH
+        self.__CANVAS_HEIGHT = self.__DEFAULT_CANVAS_HEIGHT
+        self._current_view = {"kind": "placeholder"}
+        self._resize_job = None
 
-        # ---- Header ----
-        self.top_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
+        self.main_frame = tk.Frame(self.main_window, bg=self.COLORS["bg"], padx=28, pady=26)
+        self.main_frame.pack(fill="both", expand=True)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(2, weight=1)
+
+        self.header_frame = tk.Frame(
+            self.main_frame,
+            bg=self.COLORS["header_bg"],
+            bd=1,
+            relief="solid",
+            padx=24,
+            pady=16,
+        )
+        self.header_frame.grid(row=0, column=0, sticky="ew")
         tk.Label(
-            self.top_frame,
-            text="Choose which chart to draw",
-            justify=tk.LEFT,
-            padx=20,
-            font="Times 17",
+            self.header_frame,
+            text="Election Data Visualization",
+            font=self.FONTS["title"],
             bg=self.COLORS["header_bg"],
             fg=self.COLORS["header_fg"],
-            relief=tk.GROOVE,
-            width=45,
         ).pack()
-        self.top_frame.pack()
+        tk.Label(
+            self.header_frame,
+            text="Choose the chart, enter a year and state, then render a clean election summary.",
+            font=self.FONTS["subtitle"],
+            bg=self.COLORS["header_bg"],
+            fg=self.COLORS["header_fg"],
+        ).pack(pady=(6, 0))
 
-        # ---- Radio buttons (chart selector) ----
-        self.r_b_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
+        self.controls_card = tk.Frame(
+            self.main_frame,
+            bg=self.COLORS["surface"],
+            bd=1,
+            relief="solid",
+            padx=24,
+            pady=20,
+        )
+        self.controls_card.grid(row=1, column=0, sticky="ew", pady=(18, 16))
+
+        self._section_label(self.controls_card, "Chart Type").pack(anchor="w")
+
         self.radio_var = tk.IntVar(value=1)
         radio_items = [
-            ("Percent of Popular vote.", 1),
-            ("Party affiliation House of Representatives.", 2),
+            ("Percent of popular vote", 1),
+            ("Party affiliation in the House of Representatives", 2),
         ]
+        self.r_b_frame = tk.Frame(self.controls_card, bg=self.COLORS["surface"])
+        self.r_b_frame.pack(fill="x", pady=(8, 16))
         for label, val in radio_items:
             tk.Radiobutton(
                 self.r_b_frame,
                 text=label,
                 variable=self.radio_var,
                 value=val,
-                padx=20,
-                font="Times 17",
-                bg=self.COLORS["panel"],
+                font=self.FONTS["radio"],
+                bg=self.COLORS["surface"],
                 fg=self.COLORS["text_fg"],
-                activebackground=self.COLORS["panel"],
+                selectcolor=self.COLORS["surface"],
+                activebackground=self.COLORS["surface"],
                 activeforeground=self.COLORS["text_fg"],
-                selectcolor=self.COLORS["panel"],  # keep background flat
-                cursor="circle",
-            ).pack(anchor=tk.W)
-        self.r_b_frame.pack()
+                anchor="w",
+                padx=4,
+                cursor="hand2",
+            ).pack(fill="x", pady=3)
 
-        # ---- Separator line (visual) ----
-        self.year_frame_up = tk.Frame(
-            self.main_window,
-            width=430,
-            height=6,
-            relief="raised",
-            borderwidth=3,
-            bg=self.COLORS["panel"],
-        )
-        self.year_frame_up.pack()
+        self.separator = tk.Frame(self.controls_card, bg=self.COLORS["entry_border"], height=1)
+        self.separator.pack(fill="x", pady=(0, 18))
 
-        # ---- Year + State rows ----
-        self.year_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
-        self.state_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
+        self.form_frame = tk.Frame(self.controls_card, bg=self.COLORS["surface"])
+        self.form_frame.pack(fill="x")
 
+        self.year_field = tk.Frame(self.form_frame, bg=self.COLORS["surface"])
+        self.year_field.pack(side="left", fill="x", expand=True, padx=(0, 12))
+        tk.Label(
+            self.year_field,
+            text="Year",
+            font=self.FONTS["field_label"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["text_fg"],
+        ).pack(anchor="w")
+        tk.Label(
+            self.year_field,
+            text="Valid range: 1976-2016",
+            font=self.FONTS["field_hint"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["muted_fg"],
+        ).pack(anchor="w", pady=(2, 6))
         self.year_entry = tk.Entry(
-            self.year_frame,
-            width=10,
+            self.year_field,
+            width=18,
+            font=self.FONTS["body"],
             bg=self.COLORS["entry_bg"],
             fg=self.COLORS["entry_fg"],
             insertbackground=self.COLORS["entry_fg"],
+            relief="flat",
             highlightthickness=2,
             highlightbackground=self.COLORS["entry_border"],
-            relief="flat",
+            highlightcolor=self.COLORS["border"],
+            bd=0,
         )
-        self.year_label = tk.Label(
-            self.year_frame,
-            text="Enter Year 1976 -2016.",
-            font="Times 19",
-            bg=self.COLORS["panel"],
-            fg=self.COLORS["text_fg"],
-        )
-        self.year_entry.pack(side="left")
-        self.year_label.pack(side="left")
+        self.year_entry.pack(fill="x", ipady=8)
 
+        self.state_field = tk.Frame(self.form_frame, bg=self.COLORS["surface"])
+        self.state_field.pack(side="left", fill="x", expand=True, padx=(12, 0))
+        tk.Label(
+            self.state_field,
+            text="State",
+            font=self.FONTS["field_label"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["text_fg"],
+        ).pack(anchor="w")
+        tk.Label(
+            self.state_field,
+            text="Example: California",
+            font=self.FONTS["field_hint"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["muted_fg"],
+        ).pack(anchor="w", pady=(2, 6))
         self.state_entry = tk.Entry(
-            self.state_frame,
-            width=10,
+            self.state_field,
+            width=18,
+            font=self.FONTS["body"],
             bg=self.COLORS["entry_bg"],
             fg=self.COLORS["entry_fg"],
             insertbackground=self.COLORS["entry_fg"],
+            relief="flat",
             highlightthickness=2,
             highlightbackground=self.COLORS["entry_border"],
-            relief="flat",
+            highlightcolor=self.COLORS["border"],
+            bd=0,
         )
-        self.state_label = tk.Label(
-            self.state_frame,
-            text="Enter State.",
-            font="Times 19",
-            bg=self.COLORS["panel"],
+        self.state_entry.pack(fill="x", ipady=8)
+
+        self.chart_card = tk.Frame(
+            self.main_frame,
+            bg=self.COLORS["surface"],
+            bd=1,
+            relief="solid",
+            padx=22,
+            pady=20,
+        )
+        self.chart_card.grid(row=2, column=0, sticky="nsew")
+
+        chart_heading = tk.Frame(self.chart_card, bg=self.COLORS["surface"])
+        chart_heading.pack(fill="x")
+        tk.Label(
+            chart_heading,
+            text="Visualization",
+            font=self.FONTS["section"],
+            bg=self.COLORS["surface"],
             fg=self.COLORS["text_fg"],
+        ).pack(anchor="w")
+        tk.Label(
+            chart_heading,
+            text="The chart is centered and the legend stays visually attached to the graph.",
+            font=self.FONTS["field_hint"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["muted_fg"],
+        ).pack(anchor="w", pady=(2, 12))
+
+        self.canvas_frame = tk.Frame(
+            self.chart_card,
+            bg=self.COLORS["canvas_bg"],
+            bd=1,
+            relief="solid",
+            padx=14,
+            pady=14,
         )
-        self.state_entry.pack(side="left")
-        self.state_label.pack(side="left")
-
-        self.year_frame.pack()
-        self.state_frame.pack()
-
-        # ---- Second separator ----
-        self.state_frame_down = tk.Frame(
-            self.main_window,
-            width=430,
-            height=6,
-            relief="raised",
-            borderwidth=3,
-            bg=self.COLORS["panel"],
-        )
-        self.state_frame_down.pack()
-
-        # ---- Canvas ----
-        self.canvas_frame = tk.Frame(self.main_window, bg=self.COLORS["panel"])
+        self.canvas_frame.pack(fill="both", expand=True)
         self.canvas = tk.Canvas(
             self.canvas_frame,
             width=self.__CANVAS_WIDTH,
             height=self.__CANVAS_HEIGHT,
             bg=self.COLORS["canvas_bg"],
-            highlightthickness=3,
-            highlightbackground=self.COLORS["border"],
+            highlightthickness=0,
+            bd=0,
         )
-        self.canvas.pack()
-        self.canvas_frame.pack()
+        self.canvas.pack(fill="both", expand=True)
 
-        # ---- Info rows under the canvas (legend/notes) ----
-        self.middle_frame_d = tk.Frame(self.main_window, bg=self.COLORS["panel"])
-        self.middle_frame_r = tk.Frame(self.main_window, bg=self.COLORS["panel"])
-        self.middle_frame_o = tk.Frame(self.main_window, bg=self.COLORS["panel"])
-        self.middle_frame_t = tk.Frame(self.main_window, bg=self.COLORS["panel"])
-        self.middle_frame_d.pack()
-        self.middle_frame_r.pack()
-        self.middle_frame_o.pack()
-        self.middle_frame_t.pack()
+        self.summary_frame = tk.Frame(self.chart_card, bg=self.COLORS["surface"])
+        self.summary_frame.pack(fill="x", pady=(14, 0))
 
-        # ---- Bottom buttons ----
-        self.bottom_frame = tk.Frame(
-            self.main_window, relief="raised", borderwidth=2, bg=self.COLORS["panel"]
-        )
-        self.new_search_button = tk.Button(
+        self.bottom_frame = tk.Frame(self.main_frame, bg=self.COLORS["bg"])
+        self.bottom_frame.grid(row=3, column=0, sticky="ew", pady=(18, 0))
+
+        self.new_search_button = self._action_button(
             self.bottom_frame,
-            text="    Clear    ",
-            fg=self.COLORS["btn_ok_fg"],
-            bg=self.COLORS["btn_bg"],
-            font="Times 19",
-            activeforeground=self.COLORS["btn_active_fg"],
+            text="Clear",
+            fg=self.COLORS["btn_clear_fg"],
+            bg=self.COLORS["btn_neutral_bg"],
             command=self.new_search,
         )
-        self.show_button = tk.Button(
+        self.show_button = self._action_button(
             self.bottom_frame,
-            text=" Show graph ",
-            fg=self.COLORS["btn_ok_fg"],
-            bg=self.COLORS["btn_bg"],
-            font="Times 19",
-            activeforeground=self.COLORS["btn_active_fg"],
+            text="Show Graph",
+            fg=self.COLORS["btn_show_fg"],
+            bg=self.COLORS["btn_show_bg"],
             command=self.year_state,
         )
-        self.show_button.bind("<Button>", self.change)
-        self.quit_button = tk.Button(
+        self.quit_button = self._action_button(
             self.bottom_frame,
-            text=" Quit ",
+            text="Quit",
             fg=self.COLORS["btn_quit_fg"],
-            bg=self.COLORS["btn_bg"],
-            font="Times 19",
-            activeforeground=self.COLORS["btn_active_fg"],
+            bg=self.COLORS["btn_neutral_bg"],
             command=self.main_window.destroy,
         )
-        self.new_search_button.pack(side="left")
-        self.show_button.pack(side="left")
-        self.quit_button.pack(side="left")
-        self.bottom_frame.pack(side="bottom")
+        self.new_search_button.pack(side="left", expand=True, fill="x", padx=(0, 8))
+        self.show_button.pack(side="left", expand=True, fill="x", padx=8)
+        self.quit_button.pack(side="left", expand=True, fill="x", padx=(8, 0))
+
+        self._draw_placeholder()
+        self.year_entry.focus_set()
+        self.main_window.bind("<Configure>", self._on_window_resize)
 
         # ---- Center window on screen ----
         self.main_window.update_idletasks()
@@ -523,159 +602,367 @@ class MyGUI:
     def _clear_canvas_and_notes(self):
         """Clear canvas drawings and legend/notes frames before drawing new chart."""
         self.canvas.delete("all")
-        for frame in (self.middle_frame_d, self.middle_frame_r, self.middle_frame_o, self.middle_frame_t):
-            for w in frame.winfo_children():
-                w.destroy()
+        for widget in self.summary_frame.winfo_children():
+            widget.destroy()
+        self.legend_row = None
+
+    def _on_window_resize(self, event):
+        if event.widget != self.main_window:
+            return
+        if self._resize_job is not None:
+            self.main_window.after_cancel(self._resize_job)
+        self._resize_job = self.main_window.after(80, self._apply_responsive_layout)
+
+    def _apply_responsive_layout(self):
+        self._resize_job = None
+        self.main_window.update_idletasks()
+
+        available_width = self.canvas_frame.winfo_width() - 28
+        available_height = self.canvas_frame.winfo_height() - 28
+        canvas_width = min(self.__MAX_CANVAS_WIDTH, max(self.__MIN_CANVAS_WIDTH, available_width))
+        canvas_height = min(self.__MAX_CANVAS_HEIGHT, max(self.__MIN_CANVAS_HEIGHT, available_height))
+
+        if (
+            canvas_width == self.__CANVAS_WIDTH
+            and canvas_height == self.__CANVAS_HEIGHT
+        ):
+            return
+
+        self.__CANVAS_WIDTH = canvas_width
+        self.__CANVAS_HEIGHT = canvas_height
+        self.canvas.config(width=self.__CANVAS_WIDTH, height=self.__CANVAS_HEIGHT)
+        self._render_current_view()
+
+    def _section_label(self, parent, text):
+        return tk.Label(
+            parent,
+            text=text,
+            font=self.FONTS["section"],
+            bg=parent.cget("bg"),
+            fg=self.COLORS["text_fg"],
+        )
+
+    def _action_button(self, parent, text, fg, bg, command):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=self.FONTS["button"],
+            fg=fg,
+            bg=bg,
+            activeforeground=self.COLORS["btn_active_fg"],
+            activebackground=self.COLORS["surface"],
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            padx=10,
+            pady=12,
+            highlightthickness=1,
+            highlightbackground=self.COLORS["btn_border"],
+        )
+
+    def _normalize_state(self, state):
+        normalized = state.strip().lower()
+        if normalized in ("dc", "d.c.", "district of columbia"):
+            return "District of Columbia"
+
+        minor_words = {"of", "and", "the"}
+        words = normalized.split()
+        output = []
+        for index, word in enumerate(words):
+            if index > 0 and word in minor_words:
+                output.append(word)
+            else:
+                output.append(word.capitalize())
+        return " ".join(output)
+
+    def _chart_bounds(self):
+        canvas_width = max(self.__MIN_CANVAS_WIDTH, self.canvas.winfo_width())
+        canvas_height = max(self.__MIN_CANVAS_HEIGHT, self.canvas.winfo_height())
+
+        top_margin = 56
+        bottom_margin = 18
+        side_margin = 28
+        usable_width = max(120, canvas_width - (2 * side_margin))
+        usable_height = max(120, canvas_height - top_margin - bottom_margin)
+        diameter = min(usable_width, usable_height)
+        x1 = (canvas_width - diameter) / 2
+        y1 = top_margin + max(0, (usable_height - diameter) / 2)
+        x2 = x1 + diameter
+        y2 = y1 + diameter
+        return canvas_width, canvas_height, x1, y1, x2, y2
+
+    def _render_current_view(self):
+        kind = self._current_view.get("kind")
+        if kind == "chart":
+            self._draw_pie_chart(
+                title=self._current_view["title"],
+                counts=self._current_view["counts"],
+                total=self._current_view["total"],
+                formatter_kind=self._current_view["formatter_kind"],
+                remember=False,
+            )
+            if self._current_view["formatter_kind"] == "seats":
+                self._legend_line(f"Total seats = {self._current_view['total']}", None)
+        else:
+            self._draw_placeholder(remember=False)
+
+    def _draw_placeholder(self, remember=True):
+        if remember:
+            self._current_view = {"kind": "placeholder"}
+
+        self._clear_canvas_and_notes()
+        canvas_width, canvas_height, x1, y1, x2, y2 = self._chart_bounds()
+        self.canvas.create_rectangle(
+            12,
+            12,
+            canvas_width - 12,
+            canvas_height - 12,
+            outline=self.COLORS["canvas_ring"],
+            width=2,
+        )
+        self.canvas.create_oval(
+            x1,
+            y1,
+            x2,
+            y2,
+            outline=self.COLORS["canvas_ring"],
+            width=2,
+        )
+        self.canvas.create_text(
+            canvas_width / 2,
+            34,
+            text="Your chart will appear here",
+            fill=self.COLORS["text_fg"],
+            font=self.FONTS["canvas_title"],
+        )
+        self.canvas.create_text(
+            canvas_width / 2,
+            canvas_height / 2,
+            text="Enter a valid year and state,\nthen click Show Graph.",
+            fill=self.COLORS["muted_fg"],
+            font=self.FONTS["canvas_hint"],
+            justify="center",
+        )
+
+        tk.Label(
+            self.summary_frame,
+            text="No chart is displayed yet.",
+            font=self.FONTS["legend"],
+            bg=self.COLORS["surface"],
+            fg=self.COLORS["muted_fg"],
+        ).pack(anchor="center")
 
     def _note_label(self, parent, text, fg_color):
         """Create a legend label that respects theme colors."""
-        lbl = tk.Label(
+        return tk.Label(
             parent,
             text=text,
-            font="Times 15",
-            bg=self.COLORS["panel"],
-            fg=fg_color if fg_color else "black",
+            font=self.FONTS["legend"],
+            bg=self.COLORS["surface"],
+            fg=fg_color if fg_color else self.COLORS["text_fg"],
+            anchor="center",
         )
-        return lbl
+
+    def _legend_line(self, text, color):
+        if self.legend_row is None:
+            self.legend_row = tk.Frame(self.summary_frame, bg=self.COLORS["surface"])
+            self.legend_row.pack(anchor="center", pady=2)
+
+        line = tk.Frame(self.legend_row, bg=self.COLORS["surface"])
+        line.pack(side="left", padx=18)
+        marker = tk.Frame(
+            line,
+            width=12,
+            height=12,
+            bg=color if color else self.COLORS["muted_fg"],
+            bd=0,
+        )
+        marker.pack(side="left", padx=(0, 8))
+        marker.pack_propagate(False)
+        self._note_label(line, text, color).pack(side="left")
+
+    def _read_form_inputs(self):
+        year = self.year_entry.get().strip()
+        state = self._normalize_state(self.state_entry.get())
+
+        if not year or not state:
+            raise ValueError("Enter both a year and a state.")
+        if not year.isdigit():
+            raise ValueError("Year must contain only digits.")
+        if not 1976 <= int(year) <= 2016:
+            raise ValueError("Year must be between 1976 and 2016.")
+
+        return year, state
+
+    def _president_chart_data(self, year, state):
+        key = (year, state)
+        if key not in self.__president_dict:
+            raise ValueError(f"No popular-vote data found for {state} in {year}.")
+
+        counts = {"Democrat": 0, "Republican": 0, "Other": 0}
+        total_votes = 0
+        for rec in self.__president_dict[key]:
+            try:
+                votes = int(rec.get_candidatevotes())
+            except ValueError:
+                votes = 0
+
+            try:
+                total_votes = int(rec.get_totalvotes())
+            except ValueError:
+                pass
+
+            party = (rec.get_party() or "").strip().lower()
+            if party == "democrat":
+                counts["Democrat"] += votes
+            elif party == "republican":
+                counts["Republican"] += votes
+            else:
+                counts["Other"] += votes
+
+        if total_votes <= 0:
+            total_votes = counts["Democrat"] + counts["Republican"] + counts["Other"]
+
+        if total_votes <= 0:
+            raise ValueError(f"Vote totals are missing for {state} in {year}.")
+
+        return counts, total_votes
+
+    def _house_chart_data(self, year, state):
+        key = (int(year), state)
+        if key not in self.__state_breakdown_dict:
+            raise ValueError(f"No House data found for {state} in {year}.")
+
+        by_party = self.__state_breakdown_dict[key]
+        counts = {
+            "Democrat": by_party.get("Democrat", 0),
+            "Republican": by_party.get("Republican", 0),
+            "Other": by_party.get("Other", 0),
+        }
+        total = counts["Democrat"] + counts["Republican"] + counts["Other"]
+        if total <= 0:
+            raise ValueError(f"House totals are missing for {state} in {year}.")
+        return counts, total
+
+    def _draw_chart_shell(self, title):
+        canvas_width, canvas_height, _, _, _, _ = self._chart_bounds()
+        self.canvas.create_rectangle(
+            12,
+            12,
+            canvas_width - 12,
+            canvas_height - 12,
+            outline=self.COLORS["canvas_ring"],
+            width=2,
+        )
+        self.canvas.create_text(
+            canvas_width / 2,
+            34,
+            text=title,
+            fill=self.COLORS["text_fg"],
+            font=self.FONTS["canvas_title"],
+        )
+
+    def _format_legend_value(self, formatter_kind, label, value, total):
+        if formatter_kind == "percent":
+            return f"{label} = {round((value / total) * 100, 2)}%"
+        return f"{label} = {value} seats"
+
+    def _draw_pie_chart(self, title, counts, total, formatter_kind, remember=True):
+        if remember:
+            self._current_view = {
+                "kind": "chart",
+                "title": title,
+                "counts": counts.copy(),
+                "total": total,
+                "formatter_kind": formatter_kind,
+            }
+
+        self._clear_canvas_and_notes()
+        self._draw_chart_shell(title)
+        _, _, x1, y1, x2, y2 = self._chart_bounds()
+
+        slices = [
+            ("Democrat", counts["Democrat"], self.COLORS["democrat"]),
+            ("Republican", counts["Republican"], self.COLORS["republican"]),
+            ("Other", counts["Other"], self.COLORS["other"]),
+        ]
+
+        start_angle = 90
+        for label, value, color in slices:
+            extent = (value / total) * 360 if total else 0
+            if extent <= 0:
+                continue
+            self.canvas.create_arc(
+                x1,
+                y1,
+                x2,
+                y2,
+                start=start_angle,
+                extent=-extent,
+                fill=color,
+                outline=self.COLORS["canvas_bg"],
+                width=2,
+            )
+            start_angle -= extent
+
+        self.canvas.create_oval(
+            x1,
+            y1,
+            x2,
+            y2,
+            outline=self.COLORS["border"],
+            width=2,
+        )
+
+        for label, value, color in slices:
+            self._legend_line(self._format_legend_value(formatter_kind, label, value, total), color)
 
     # Render chart based on selected radio option:
     # 1) President popular vote share (pie of D/R/Other) for (year, state)
     # 2) House winners party breakdown (pie of D/R/Other) for (year, state)
     def year_state(self):
-        self._clear_canvas_and_notes()
-        rb = self.radio_var.get()
+        try:
+            year, state = self._read_form_inputs()
+            rb = self.radio_var.get()
 
-        if rb == 1:
-            # Popular vote shares from president_dictionary[(year, state)]
-            year = self.year_entry.get()
-            state = self.state_entry.get()
+            if rb == 1:
+                counts, total = self._president_chart_data(year, state)
+                self._draw_pie_chart(
+                    title=f"Popular Vote in {state}, {year}",
+                    counts=counts,
+                    total=total,
+                    formatter_kind="percent",
+                )
+            else:
+                counts, total = self._house_chart_data(year, state)
+                self._draw_pie_chart(
+                    title=f"House Winners in {state}, {year}",
+                    counts=counts,
+                    total=total,
+                    formatter_kind="seats",
+                )
+                self._legend_line(f"Total seats = {total}", None)
 
-            # Build mapping: {totalvotes: {"democrat": x, "republican": y, "other": z}}
-            dict_y_s = {}
-            dict_y_s_nest = {}
-            total_votes = 0
-            top_two_count = 0
-            other_sum = 0
+            self.change(None)
 
-            if (year, state) in self.__president_dict:
-                for rec in self.__president_dict[(year, state)]:
-                    if top_two_count < 2:
-                        dict_y_s_nest[rec.get_party()] = rec.get_candidatevotes()
-                        total_votes = rec.get_totalvotes()
-                        top_two_count += 1
-                    else:
-                        try:
-                            other_sum += int(rec.get_candidatevotes())
-                        except ValueError:
-                            pass
-                dict_y_s_nest["other"] = other_sum
-                dict_y_s[total_votes] = dict_y_s_nest
-
-            # Extract numeric values
-            d_votes = r_votes = o_votes = 0
-            total = 0
-            for total in dict_y_s:
-                for party in dict_y_s[total]:
-                    if party == "democrat":
-                        d_votes = dict_y_s[total][party]
-                    elif party == "republican":
-                        r_votes = dict_y_s[total][party]
-                    elif party == "other":
-                        o_votes = dict_y_s[total][party]
-
-            # Choose primary slice order/colors
-            one = two = 0.0
-            fill_1 = fill_2 = ""
-            if d_votes > r_votes:
-                one = float(d_votes) / float(total) * 360 if total else 0
-                two = float(r_votes) / float(total) * 360 if total else 0
-                fill_1, fill_2 = "blue", "red"
-            elif r_votes > d_votes:
-                one = float(r_votes) / float(total) * 360 if total else 0
-                two = float(d_votes) / float(total) * 360 if total else 0
-                fill_1, fill_2 = "red", "blue"
-
-            try:
-                incr_two = one + two
-                three = float(o_votes) / float(total) * 360 if total else 0
-
-                # Draw pie arcs
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=0, extent=one, fill=fill_1)
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=one, extent=two, fill=fill_2)
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=incr_two, extent=three, fill="green")
-
-                # Legend
-                d = round(float(d_votes) / float(total) * 100, 2) if total else 0.0
-                r = round(float(r_votes) / float(total) * 100, 2) if total else 0.0
-                o = round(float(o_votes) / float(total) * 100, 2) if total else 0.0
-
-                self._note_label(self.middle_frame_d, f"  Democrat = {d}%", "blue").pack(side="left")
-                self._note_label(self.middle_frame_r, f"Republican = {r}%", "red").pack(side="left")
-                self._note_label(self.middle_frame_o, f"      Other = {o}%", "green").pack(side="left")
-
-            except ZeroDivisionError:
-                messagebox.showerror(title="Error", message="Check the entered data (Year/State).")
-
-        elif rb == 2:
-            # House winners by party from state_breakdown_dict[(int(year), state)]
-            year = self.year_entry.get()
-            state = self.state_entry.get()
-
-            d_votes = r_votes = o_votes = 0
-            total = 0
-
-            if year.isdigit() and (int(year), state) in self.__state_breakdown_dict:
-                by_party = self.__state_breakdown_dict[(int(year), state)]
-                d_votes = by_party.get("Democrat", 0)
-                r_votes = by_party.get("Republican", 0)
-                o_votes = by_party.get("Other", 0)
-                total = d_votes + r_votes + o_votes
-
-            # Choose primary slice order/colors
-            one = two = 0.0
-            fill_1 = fill_2 = ""
-            if d_votes > r_votes:
-                one = int(d_votes) / int(total) * 360 if total else 0
-                two = int(r_votes) / int(total) * 360 if total else 0
-                fill_1, fill_2 = "blue", "red"
-            elif r_votes > d_votes:
-                one = int(r_votes) / int(total) * 360 if total else 0
-                two = int(d_votes) / int(total) * 360 if total else 0
-                fill_1, fill_2 = "red", "blue"
-
-            try:
-                incr_two = one + two
-                three = int(o_votes) / int(total) * 360 if total else 0
-
-                # Draw pie arcs
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=0, extent=one, fill=fill_1)
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=one, extent=two, fill=fill_2)
-                self.canvas.create_arc(self.__X1, self.__Y1, self.__X2, self.__Y2,
-                                       start=incr_two, extent=three, fill="green")
-
-                # Legend
-                self._note_label(self.middle_frame_d, f"   Democrat = {d_votes} votes.", "blue").pack(side="left")
-                self._note_label(self.middle_frame_r, f"Republican = {r_votes} votes.", "red").pack(side="left")
-                self._note_label(self.middle_frame_o, f"       Other = {o_votes} votes.", "green").pack(side="left")
-                self._note_label(self.middle_frame_t, f"Total votes = {total} votes.", None).pack(side="left")
-
-            except ZeroDivisionError:
-                messagebox.showerror(title="Error", message="Check the entered data (Year/State).")
+        except ValueError as error:
+            self._draw_placeholder()
+            messagebox.showerror(title="Error", message=str(error))
 
     # Visual feedback: change button color on click
     def change(self, _event):
         self.show_button["fg"] = self.COLORS["btn_active_fg"]
         self.show_button["activeforeground"] = self.COLORS["btn_active_fg"]
 
-    # Reset UI by closing current window and opening a fresh one
+    # Reset UI without recreating the entire application window
     def new_search(self):
-        self.main_window.destroy()
-        MyGUI(president_dictionary, state_breakdown_dict)
+        self.year_entry.delete(0, tk.END)
+        self.state_entry.delete(0, tk.END)
+        self.show_button["fg"] = self.COLORS["btn_show_fg"]
+        self.show_button["activeforeground"] = self.COLORS["btn_active_fg"]
+        self._draw_placeholder()
+        self.year_entry.focus_set()
 
 
 # ----------------------------- Entry Point -----------------------------
