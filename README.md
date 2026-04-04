@@ -135,14 +135,6 @@ These are tab-delimited text files used by the parsing functions.
 
 ---
 
-## Author
-
-**Serge Hall**  
-GitHub: [@SergeHall](https://github.com/SergeHall)  
-Email: `serge.hall.dev@gmail.com`
-
----
-
 ## License
 
 This repository is for **educational purposes only**, as part of coursework at **Santa Monica College**.  
