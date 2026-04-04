@@ -14,9 +14,10 @@
 #  2) House winners party breakdown (D/R/Other) for (year, state)
 # And renders a pie chart on a Tkinter Canvas.
 
-import os
+from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
+from typing import Iterable
 
 
 # ----------------------------- Data Classes -----------------------------
@@ -110,18 +111,18 @@ class House:
 
 # ----------------------------- File Helpers -----------------------------
 
-def _read_tab_file_lines(basename):
+def _read_tab_file_lines(basename: str) -> list[str]:
     """
     Read a .tab file from the same directory as this script.
     Returns list[str] (lines).
     """
-    base_dir = os.path.dirname(__file__)
-    file_path = os.path.join(base_dir, basename)
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    base_dir: Path = Path(str(__file__)).resolve().parent
+    file_path: Path = base_dir.joinpath(basename)
+    with file_path.open("r", encoding="utf-8", errors="ignore") as f:
         return f.readlines()
 
 
-def _split_tab_and_rstrip(lines, drop_last_field=False):
+def _split_tab_and_rstrip(lines: Iterable[str], drop_last_field: bool = False) -> list[list[str]]:
     """
     Split each line by tab and rstrip each field.
     If drop_last_field is True, pop the last element (some files end with a trailing tab).
@@ -753,7 +754,7 @@ class MyGUI:
             fg=self.COLORS["muted_fg"],
         ).pack(anchor="center")
 
-    def _note_label(self, parent, text, fg_color):
+    def _note_label(self, parent, text, fg_color) -> tk.Label:
         """Create a legend label that respects theme colors."""
         return tk.Label(
             parent,
@@ -780,7 +781,8 @@ class MyGUI:
         )
         marker.pack(side="left", padx=(0, 8))
         marker.pack_propagate(False)
-        self._note_label(line, text, color).pack(side="left")
+        note_label = self._note_label(line, text, color)
+        note_label.pack(side="left")
 
     def _read_form_inputs(self):
         year = self.year_entry.get().strip()
